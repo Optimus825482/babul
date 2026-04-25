@@ -4,7 +4,7 @@ import time
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 from .base import BaseScraper
-from .browser_session import BrowserSession, is_playwright_available, is_profile_ready
+from .browser_session import BrowserSession, is_scrapling_available, is_profile_ready
 
 
 class ArabamScraper(BaseScraper):
@@ -15,7 +15,7 @@ class ArabamScraper(BaseScraper):
     SEARCH_URL = "https://www.arabam.com/ikinci-el"
 
     def _fetch_with_browser(self, url: str) -> str | None:
-        if not is_playwright_available():
+        if not is_scrapling_available():
             self.logger.warning("Playwright kurulu degil; arabam.com HTTP fallback kapali")
             return None
         if not is_profile_ready("arabam"):
@@ -364,3 +364,4 @@ class ArabamScraper(BaseScraper):
         except Exception as e:
             self.logger.warning(f"Detay çekme hatası ({detail_url}): {str(e)}")
             return {}
+
