@@ -12,7 +12,7 @@ Komut satırı argümanı yoksa varsayılan olarak sahibinden açılır.
 
 import sys
 import logging
-from browser_session import BrowserSession, is_playwright_available
+from .browser_session import BrowserSession, is_playwright_available
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 log = logging.getLogger("setup_browser")
