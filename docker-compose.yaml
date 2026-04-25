@@ -11,6 +11,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/babul.db}
       SCRAPER_MAX_PAGES: ${SCRAPER_MAX_PAGES:-5}
       SCRAPER_TIMEOUT: ${SCRAPER_TIMEOUT:-15}
+      SCRAPER_API_KEY: ${SCRAPER_API_KEY:-}
     volumes:
       - babul-data:/app/data
     healthcheck:
