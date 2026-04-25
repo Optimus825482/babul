@@ -2,6 +2,7 @@
 import re
 import time
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
 from .base import BaseScraper
 from .browser_session import BrowserSession, is_playwright_available, is_profile_ready
 
@@ -20,12 +21,17 @@ class ArabamScraper(BaseScraper):
         if not is_profile_ready("arabam"):
             self.logger.warning("Arabam browser profili hazir degil; setup_browser.py calistirilmali")
             return None
-        try:
+
+        def run_browser_fetch():
             with BrowserSession("arabam", headless=True) as session:
-                html = session.fetch(url)
-                if html:
-                    self.logger.info("Browser session ile sayfa alindi")
-                return html
+                return session.fetch(url)
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                html = executor.submit(run_browser_fetch).result()
+            if html:
+                self.logger.info("Browser session ile sayfa alindi")
+            return html
         except Exception as exc:
             self.logger.warning(f"Browser session basarisiz: {exc}")
             return None

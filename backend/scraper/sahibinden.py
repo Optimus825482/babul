@@ -2,6 +2,7 @@
 import re
 import time
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
 from .base import BaseScraper
 from .browser_session import BrowserSession, is_playwright_available, is_profile_ready
 
@@ -14,17 +15,25 @@ class SahibindenScraper(BaseScraper):
     SEARCH_URL = "https://www.sahibinden.com/otomobil"
     
     def _fetch_with_browser(self, url: str) -> str | None:
-        """Playwright persistent context ile çeker (profil hazırsa)."""
-        if not is_playwright_available() or not is_profile_ready("sahibinden"):
+        if not is_playwright_available():
+            self.logger.warning("Playwright kurulu degil; sahibinden.com HTTP fallback kapali")
             return None
-        try:
+        if not is_profile_ready("sahibinden"):
+            self.logger.warning("Sahibinden browser profili hazir degil; setup_browser.py calistirilmali")
+            return None
+
+        def run_browser_fetch():
             with BrowserSession("sahibinden", headless=True) as session:
-                html = session.fetch(url)
-                if html:
-                    self.logger.info("Browser session ile sayfa alındı")
-                return html
+                return session.fetch(url)
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                html = executor.submit(run_browser_fetch).result()
+            if html:
+                self.logger.info("Browser session ile sayfa alindi")
+            return html
         except Exception as exc:
-            self.logger.warning(f"Browser session başarısız: {exc}")
+            self.logger.warning(f"Browser session basarisiz: {exc}")
             return None
 
     def fetch(self, url: str, referer: str | None = None) -> str | None:
