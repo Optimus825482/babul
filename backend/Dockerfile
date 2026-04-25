@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Sistem bağımlılıkları: curl_cffi + Playwright Chromium
+# Sistem bağımlılıkları
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libcurl4-openssl-dev \
@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Playwright Chromium + sistem bağımlılıklarını kur
-RUN playwright install chromium --with-deps
+# Scrapling tarayıcılarını kur (Camoufox + Chromium)
+RUN scrapling install --force
 
 COPY . .
 

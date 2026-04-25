@@ -1,18 +1,16 @@
 """
-Browser profil kurulum scripti — ilk kez çalıştırılır, headed modda açar.
+Browser profil kurulum scripti — sahibinden.com için.
+İlk kez çalıştırılır, headed modda açar; Cloudflare challenge'ı otomatik çözmeye çalışır.
 
-Kullanım (VPS üzerinde Xvfb ile):
-  xvfb-run --auto-servernum python -m scraper.setup_browser sahibinden
-
-Ya da doğrudan Docker içinde:
+Kullanım (VPS / Docker):
+  docker exec -it <container> python -m scraper.setup_browser sahibinden
+  # veya Xvfb gerektiren ortamlar için:
   docker exec -it <container> xvfb-run -a python -m scraper.setup_browser sahibinden
-
-Komut satırı argümanı yoksa varsayılan olarak sahibinden açılır.
 """
 
 import sys
 import logging
-from .browser_session import BrowserSession, is_playwright_available
+from browser_session import BrowserSession, is_scrapling_available, PROFILE_BASE
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 log = logging.getLogger("setup_browser")
@@ -22,28 +20,34 @@ SITE_URLS = {
     "arabam": "https://www.arabam.com/ikinci-el/otomobil",
 }
 
-PAUSE_SECONDS = 90  # CAPTCHA çözmek için süre
-
 
 def main():
     site_key = sys.argv[1] if len(sys.argv) > 1 else "sahibinden"
     url = SITE_URLS.get(site_key, f"https://www.{site_key}.com")
 
-    if not is_playwright_available():
-        log.error("playwright yüklü değil! pip install playwright && playwright install chromium --with-deps")
+    if not is_scrapling_available():
+        log.error(
+            "scrapling yüklü değil!\n"
+            "  pip install 'scrapling[all]>=0.4.7'\n"
+            "  scrapling install --force"
+        )
         sys.exit(1)
 
     log.info(f"=== Browser profil kurulumu: {site_key} ===")
-    log.info(f"Profil dizinine kaydedilecek → /app/data/browser-profile/{site_key}")
-    log.info(f"HEADED modda açılıyor: {url}")
-    log.info(f"CAPTCHA veya challenge varsa {PAUSE_SECONDS} saniye içinde çöz.\n")
+    log.info(f"Profil kaydedilecek: {PROFILE_BASE / site_key}")
+    log.info(f"Headless=False modda açılıyor, Cloudflare otomatik çözülmeye çalışılacak…")
 
-    with BrowserSession(site_key, headless=False) as session:
-        session.navigate_and_wait(url, pause=PAUSE_SECONDS)
+    # headless=False + solve_cloudflare=True → challenge'ı gerçek tarayıcı ile çözer
+    with BrowserSession(site_key, headless=False, solve_cloudflare=True) as session:
+        html = session.fetch(url)
+        if html:
+            log.info(f"Sayfa başarıyla alındı ({len(html)} byte). Profil kaydedildi.")
+        else:
+            log.warning("Sayfa alınamadı — profil kaydedildi ama challenge çözülememiş olabilir.")
 
-    log.info("Profil kaydedildi. Artık headless modda reuse edilecek.")
-    log.info("Container'ı restart etmeye gerek yok — bir sonraki istekten itibaren aktif.")
+    log.info("Kurulum tamamlandı. Container restart gerekmez.")
 
 
 if __name__ == "__main__":
     main()
+
