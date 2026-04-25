@@ -27,13 +27,17 @@ class SahibindenScraper(BaseScraper):
             self.logger.warning(f"Browser session başarısız: {exc}")
             return None
 
+    def fetch(self, url: str, referer: str | None = None) -> str | None:
+        return self._fetch_best(url)
+
     def _fetch_best(self, url: str) -> str | None:
-        """Browser profil → HTTP (ScraperAPI / curl_cffi) sırasıyla dener."""
-        html = self._fetch_with_browser(url)
-        if html:
-            return html
-        self.logger.info("Browser yok/başarısız, HTTP fallback deneniyor")
-        return self.fetch(url)
+        if not is_playwright_available():
+            self.logger.warning("Playwright kurulu degil; sahibinden.com HTTP fallback kapali")
+            return None
+        if not is_profile_ready("sahibinden"):
+            self.logger.warning("Sahibinden browser profili hazir degil; setup_browser.py calistirilmali")
+            return None
+        return self._fetch_with_browser(url)
 
     def search(self, brand, model, year):
         """

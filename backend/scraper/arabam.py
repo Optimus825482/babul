@@ -3,6 +3,7 @@ import re
 import time
 from bs4 import BeautifulSoup
 from .base import BaseScraper
+from .browser_session import BrowserSession, is_playwright_available, is_profile_ready
 
 
 class ArabamScraper(BaseScraper):
@@ -11,6 +12,26 @@ class ArabamScraper(BaseScraper):
     SITE_URL   = "https://www.arabam.com"
     BASE_URL   = "https://www.arabam.com"
     SEARCH_URL = "https://www.arabam.com/ikinci-el"
+
+    def _fetch_with_browser(self, url: str) -> str | None:
+        if not is_playwright_available():
+            self.logger.warning("Playwright kurulu degil; arabam.com HTTP fallback kapali")
+            return None
+        if not is_profile_ready("arabam"):
+            self.logger.warning("Arabam browser profili hazir degil; setup_browser.py calistirilmali")
+            return None
+        try:
+            with BrowserSession("arabam", headless=True) as session:
+                html = session.fetch(url)
+                if html:
+                    self.logger.info("Browser session ile sayfa alindi")
+                return html
+        except Exception as exc:
+            self.logger.warning(f"Browser session basarisiz: {exc}")
+            return None
+
+    def fetch(self, url: str, referer: str | None = None) -> str | None:
+        return self._fetch_with_browser(url)
     
     def search(self, brand, model, year):
         """
