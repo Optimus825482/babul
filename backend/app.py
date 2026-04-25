@@ -143,6 +143,19 @@ def register_routes(app):
 
         return jsonify(response)
 
+    @app.route('/api/browser-status', methods=['GET'])
+    def browser_status():
+        """Playwright browser profil durumunu döner."""
+        from scraper.browser_session import is_playwright_available, is_profile_ready
+        return jsonify({
+            "playwright_available": is_playwright_available(),
+            "sahibinden_profile_ready": is_profile_ready("sahibinden"),
+            "setup_command": (
+                "docker exec -it <container> "
+                "xvfb-run -a python -m scraper.setup_browser sahibinden"
+            ),
+        })
+
     @app.route('/api/listings', methods=['GET'])
     def get_listings():
         page = request.args.get("page", 1, type=int)

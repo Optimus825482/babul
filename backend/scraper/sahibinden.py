@@ -3,6 +3,7 @@ import re
 import time
 from bs4 import BeautifulSoup
 from .base import BaseScraper
+from .browser_session import BrowserSession, is_playwright_available, is_profile_ready
 
 
 class SahibindenScraper(BaseScraper):
@@ -12,6 +13,28 @@ class SahibindenScraper(BaseScraper):
     BASE_URL   = "https://www.sahibinden.com"
     SEARCH_URL = "https://www.sahibinden.com/otomobil"
     
+    def _fetch_with_browser(self, url: str) -> str | None:
+        """Playwright persistent context ile çeker (profil hazırsa)."""
+        if not is_playwright_available() or not is_profile_ready("sahibinden"):
+            return None
+        try:
+            with BrowserSession("sahibinden", headless=True) as session:
+                html = session.fetch(url)
+                if html:
+                    self.logger.info("Browser session ile sayfa alındı")
+                return html
+        except Exception as exc:
+            self.logger.warning(f"Browser session başarısız: {exc}")
+            return None
+
+    def _fetch_best(self, url: str) -> str | None:
+        """Browser profil → HTTP (ScraperAPI / curl_cffi) sırasıyla dener."""
+        html = self._fetch_with_browser(url)
+        if html:
+            return html
+        self.logger.info("Browser yok/başarısız, HTTP fallback deneniyor")
+        return self.fetch(url)
+
     def search(self, brand, model, year):
         """
         sahibinden.com'da araç ilanı arar
@@ -34,12 +57,12 @@ class SahibindenScraper(BaseScraper):
         ]
         
         all_listings = []
-        
+
         for url in urls:
             self.logger.info(f"sahibinden.com'da arama yapılıyor: {url}")
-            
+
             try:
-                html = self.fetch(url)
+                html = self._fetch_best(url)
                 if not html:
                     self.logger.warning("Sayfa içeriği alınamadı")
                     continue
@@ -191,7 +214,7 @@ class SahibindenScraper(BaseScraper):
     def fetch_detail(self, detail_url):
         """İlan detay sayfasını çeker"""
         try:
-            html = self.fetch(detail_url)
+            html = self._fetch_best(detail_url)
             if not html:
                 return {}
             

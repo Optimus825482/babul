@@ -12,6 +12,8 @@ services:
       SCRAPER_MAX_PAGES: ${SCRAPER_MAX_PAGES:-5}
       SCRAPER_TIMEOUT: ${SCRAPER_TIMEOUT:-15}
       SCRAPER_API_KEY: ${SCRAPER_API_KEY:-}
+      BROWSER_PROFILE_DIR: /app/data/browser-profile
+      DISPLAY: ${DISPLAY:-:99}
     volumes:
       - babul-data:/app/data
     healthcheck:
