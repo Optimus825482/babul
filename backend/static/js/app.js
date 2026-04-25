@@ -23,6 +23,11 @@ const RESULTS_PER_PAGE = 8;
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Splash screen: min 1.8s göster, sonra kapat
+    const splash = document.getElementById('splash-screen');
+    const hideSplash = () => { if (splash) splash.classList.add('is-hidden'); };
+    setTimeout(hideSplash, 1800);
+
     loadWatchlist();
     loadNews();
     loadMarketSnapshot();
@@ -31,6 +36,19 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWatchlist();
     updateDashboard();
 });
+
+// ============================================================
+// FILTER DRAWER (Mobile)
+// ============================================================
+function toggleFilterDrawer() {
+    const sidebar = document.getElementById('search-sidebar');
+    const backdrop = document.getElementById('filter-backdrop');
+    if (!sidebar) return;
+    const isOpen = sidebar.classList.contains('is-open');
+    sidebar.classList.toggle('is-open', !isOpen);
+    if (backdrop) backdrop.classList.toggle('hidden', isOpen);
+    document.body.style.overflow = isOpen ? '' : 'hidden';
+}
 
 // ============================================================
 // API ÇAĞRILARI

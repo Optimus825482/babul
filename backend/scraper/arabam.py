@@ -8,7 +8,8 @@ from .base import BaseScraper
 class ArabamScraper(BaseScraper):
     """arabam.com'dan ikinci el araç ilanlarını çeken scraper"""
     
-    BASE_URL = "https://www.arabam.com"
+    SITE_URL   = "https://www.arabam.com"
+    BASE_URL   = "https://www.arabam.com"
     SEARCH_URL = "https://www.arabam.com/ikinci-el"
     
     def search(self, brand, model, year):

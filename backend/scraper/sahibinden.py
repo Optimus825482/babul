@@ -8,7 +8,8 @@ from .base import BaseScraper
 class SahibindenScraper(BaseScraper):
     """sahibinden.com'dan ikinci el araç ilanlarını çeken scraper"""
     
-    BASE_URL = "https://www.sahibinden.com"
+    SITE_URL   = "https://www.sahibinden.com"
+    BASE_URL   = "https://www.sahibinden.com"
     SEARCH_URL = "https://www.sahibinden.com/otomobil"
     
     def search(self, brand, model, year):
