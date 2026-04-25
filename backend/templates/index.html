@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BABUL - Ara, Bul</title>
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%231d4ed8'/%3E%3Ctext x='50' y='61' text-anchor='middle' font-size='34' font-family='Arial' font-weight='800' fill='white'%3EBA%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'inter': ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body class="font-inter">
+
+    <!-- HEADER -->
+    <header class="header-glass sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="babul-brand">
+                <div class="babul-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <path class="babul-road" d="M8 33C15 20 28 15 40 15" stroke="currentColor" stroke-width="4"
+                            stroke-linecap="round" />
+                        <circle class="babul-dot" cx="34" cy="17" r="5" fill="currentColor" />
+                        <path d="M13 32h19l5 6H9l4-6Z" fill="currentColor" opacity="0.18" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="babul-logo" aria-label="ARA BABUL">
+                        <span class="babul-ara">ARA</span>
+                        <span class="babul-stack">
+                            <span class="babul-part babul-part-ba">BA</span>
+                            <span class="babul-part babul-part-bul">BUL</span>
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-500 font-medium">Ara. Karşılaştır. Bul.</p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-sm text-slate-500">
+                <span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span>Çevrimiçi</span>
+            </div>
+        </div>
+        <nav class="top-nav max-w-7xl mx-auto px-4 pb-3">
+            <button class="nav-tab is-active" data-view="dashboard" onclick="showView('dashboard')">Dashboard</button>
+            <button class="nav-tab" data-view="search" onclick="showView('search')">Arama Sayfası</button>
+            <button class="nav-tab" data-view="watchlist" onclick="showView('watchlist')">Takip Listesi <span
+                    id="watchlist-count">0</span></button>
+            <button class="nav-tab" data-view="kredi" onclick="showView('kredi')">Kredi Hesaplama</button>
+        </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+
+        <section id="dashboard-view" class="app-view">
+            <div class="dashboard-hero mb-6">
+                <div>
+                    <span class="eyebrow">Piyasa paneli</span>
+                    <h2>Gündemi izle, fırsatı kaçırma</h2>
+                    <p>BABUL takip listendeki araçları, arama aktivitelerini ve piyasa sinyallerini tek ekranda toplar.
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="showView('search')">Aramaya Başla</button>
+            </div>
+            <div class="dashboard-grid">
+                <section class="news-slider">
+                    <div class="slider-head">
+                        <div>
+                            <span class="eyebrow">Otomobil gündemi</span>
+                            <h3>Piyasa notları</h3>
+                        </div>
+                        <div class="slider-controls">
+                            <button onclick="moveNewsSlide(-1)" aria-label="Önceki">‹</button>
+                            <button onclick="moveNewsSlide(1)" aria-label="Sonraki">›</button>
+                        </div>
+                    </div>
+                    <div id="news-track" class="news-track">
+                        <article class="news-card is-active">
+                            <span>BABUL</span>
+                            <h4>Haberler yükleniyor</h4>
+                            <p>Otomobil gündemi araştırılıyor.</p>
+                        </article>
+                    </div>
+                </section>
+                <aside class="dashboard-side">
+                    <div class="mini-panel market-panel">
+                        <span class="panel-label">Piyasa</span>
+                        <div id="market-rates" class="market-list">
+                            <p class="muted-line">Kur bilgileri yükleniyor...</p>
+                        </div>
+                    </div>
+                    <div class="mini-panel market-panel">
+                        <span class="panel-label">Taşıt kredisi</span>
+                        <div id="loan-rates" class="market-list">
+                            <p class="muted-line">Faiz oranları yükleniyor...</p>
+                        </div>
+                        <a id="loan-source-link" class="market-link hidden" href="#" target="_blank"
+                            rel="noopener">Kaynağa git</a>
+                    </div>
+                    <div class="mini-panel">
+                        <span class="panel-label">Takipte</span>
+                        <strong id="dashboard-watch-count">0</strong>
+                        <p>araç / kriter</p>
+                    </div>
+                    <div class="mini-panel">
+                        <span class="panel-label">Son aktivite</span>
+                        <strong id="dashboard-last-activity">Yok</strong>
+                        <p>takip listesi güncellemesi</p>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <section id="search-view" class="app-view hidden">
+            <div class="search-layout">
+                <aside class="search-sidebar">
+                    <div class="sidebar-panel filter-panel">
+                        <span class="panel-label">Filtreler</span>
+                        <details open>
+                            <summary>Fiyat</summary>
+                            <div class="filter-grid">
+                                <input id="price-min-input" class="custom-input" inputmode="numeric"
+                                    placeholder="Min fiyat">
+                                <input id="price-max-input" class="custom-input" inputmode="numeric"
+                                    placeholder="Max fiyat">
+                            </div>
+                        </details>
+                        <details open>
+                            <summary>Kilometre</summary>
+                            <div class="filter-grid">
+                                <input id="km-min-input" class="custom-input" inputmode="numeric" placeholder="Min km">
+                                <input id="km-max-input" class="custom-input" inputmode="numeric" placeholder="Max km">
+                            </div>
+                        </details>
+                        <details>
+                            <summary>Araç özellikleri</summary>
+                            <div class="filter-stack">
+                                <select id="transmission-select" class="custom-select">
+                                    <option value="">Vites tipi</option>
+                                    <option>Otomatik</option>
+                                    <option>Manuel</option>
+                                    <option>Yarı Otomatik</option>
+                                </select>
+                                <select id="fuel-select" class="custom-select">
+                                    <option value="">Yakıt tipi</option>
+                                    <option>Benzin</option>
+                                    <option>Dizel</option>
+                                    <option>LPG</option>
+                                    <option>Hybrid</option>
+                                    <option>Elektrik</option>
+                                </select>
+                                <select id="body-select" class="custom-select">
+                                    <option value="">Kasa tipi</option>
+                                    <option>Sedan</option>
+                                    <option>Hatchback</option>
+                                    <option>SUV</option>
+                                    <option>Station Wagon</option>
+                                    <option>Coupe</option>
+                                    <option>Cabrio</option>
+                                    <option>MPV</option>
+                                    <option>Pickup</option>
+                                </select>
+                                <select id="color-select" class="custom-select">
+                                    <option value="">Renk</option>
+                                    <option>Beyaz</option>
+                                    <option>Siyah</option>
+                                    <option>Gri</option>
+                                    <option>Gümüş Gri</option>
+                                    <option>Kırmızı</option>
+                                    <option>Mavi</option>
+                                    <option>Yeşil</option>
+                                    <option>Kahverengi</option>
+                                </select>
+                                <select id="condition-select" class="custom-select">
+                                    <option value="">Araç durumu</option>
+                                    <option>İkinci El</option>
+                                    <option>Sıfır</option>
+                                    <option>Hasarlı</option>
+                                </select>
+                            </div>
+                        </details>
+                        <details>
+                            <summary>Hasar / ekspertiz</summary>
+                            <div class="filter-stack">
+                                <select id="damage-select" class="custom-select">
+                                    <option value="">Ağır hasar fark etmez</option>
+                                    <option value="false">Ağır hasarsız</option>
+                                    <option value="true">Ağır hasar kayıtlı</option>
+                                </select>
+                                <select id="paint-change-select" class="custom-select">
+                                    <option value="">Boya / değişen fark etmez</option>
+                                    <option>Boyasız / Değişensiz</option>
+                                    <option>Lokal boyalı</option>
+                                    <option>Boyalı parça var</option>
+                                    <option>Değişen parça var</option>
+                                </select>
+                            </div>
+                        </details>
+                    </div>
+                    <div class="sidebar-panel">
+                        <span class="panel-label">Arama metrikleri</span>
+                        <div class="side-metric"><span>Durum</span><strong id="side-search-status">Hazır</strong></div>
+                        <div class="side-metric"><span>Son sonuç</span><strong id="side-last-count">0 ilan</strong>
+                        </div>
+                        <div class="side-metric"><span>Ortalama</span><strong id="side-last-avg">-</strong></div>
+                        <div class="side-metric"><span>Sayfa</span><strong id="side-page-info">-</strong></div>
+                    </div>
+                    <div class="sidebar-panel">
+                        <span class="panel-label">Kriter takibi</span>
+                        <p class="side-help">Seçili marka/model/yıl kombinasyonunu takip listesine ekleyebilirsin.</p>
+                        <button class="sidebar-action" onclick="addCurrentCriteriaToWatchlist()">Bu aramayı takibe
+                            al</button>
+                    </div>
+                </aside>
+                <div>
+                    <!-- SEARCH CARD -->
+                    <div class="search-card p-6 sm:p-8 mb-8">
+                        <div class="search-card-head">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor"
+                                        stroke-width="2" viewBox="0 0 24 24">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <path d="m21 21-4.35-4.35" />
+                                    </svg>
+                                    Araç Ara
+                                </h2>
+                                <p class="text-sm text-slate-500 mt-1">Seçimleri tamamlayınca arama motoru iki kaynağı
+                                    birlikte tarar.</p>
+                            </div>
+                            <div id="form-readiness" class="readiness-pill">3 seçim gerekli</div>
+                        </div>
+                        <div class="vehicle-type-picker" aria-label="Araç tipi seçimi">
+                            <button class="vehicle-type-card is-active" type="button" data-body-type=""
+                                onclick="selectVehicleType(this)">
+                                <span>🚘</span>
+                                <strong>Otomobil</strong>
+                                <small>Tüm binek araçlar</small>
+                            </button>
+                            <button class="vehicle-type-card" type="button" data-body-type="SUV"
+                                onclick="selectVehicleType(this)">
+                                <span>🚙</span>
+                                <strong>SUV</strong>
+                                <small>Yüksek sürüş</small>
+                            </button>
+                            <button class="vehicle-type-card" type="button" data-body-type="Sedan"
+                                onclick="selectVehicleType(this)">
+                                <span>▰</span>
+                                <strong>Sedan</strong>
+                                <small>Konfor odaklı</small>
+                            </button>
+                            <button class="vehicle-type-card" type="button" data-body-type="Hatchback"
+                                onclick="selectVehicleType(this)">
+                                <span>◼</span>
+                                <strong>Hatchback</strong>
+                                <small>Şehir içi pratik</small>
+                            </button>
+                            <button class="vehicle-type-card" type="button" data-body-type="Pickup"
+                                onclick="selectVehicleType(this)">
+                                <span>▱</span>
+                                <strong>Pickup</strong>
+                                <small>Yük ve arazi</small>
+                            </button>
+                        </div>
+                        <div class="quick-search-grid mb-5">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-600 mb-2">Marka</label>
+                                <select id="brand-select" class="custom-select w-full py-3 px-4"
+                                    onchange="onBrandChange()">
+                                    <option value="">Marka Seçin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-600 mb-2">Model</label>
+                                <select id="model-select" class="custom-select w-full py-3 px-4" disabled>
+                                    <option value="">Önce Marka Seçin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-600 mb-2">Model Yılı</label>
+                                <select id="year-select" class="custom-select w-full py-3 px-4">
+                                    <option value="">Yıl Seçin</option>
+                                </select>
+                            </div>
+                            <div class="search-actions-row">
+                                <button id="search-btn"
+                                    class="btn-primary flex-1 flex items-center justify-center gap-2"
+                                    onclick="searchListings()" disabled>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+                                        viewBox="0 0 24 24">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <path d="m21 21-4.35-4.35" />
+                                    </svg>
+                                    Ara
+                                </button>
+                                <button class="btn-reset px-4 py-3" onclick="resetForm()">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2"
+                                        viewBox="0 0 24 24">
+                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                        <path d="M3 3v5h5" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- TOAST CONTAINER -->
+                    <div id="toast-container"></div>
+
+                    <!-- RESULTS AREA -->
+                    <div id="results-area">
+                        <!-- Boş State -->
+                        <div id="empty-state" class="empty-panel">
+                            <div class="empty-visual animate-float">
+                                <svg viewBox="0 0 72 72" fill="none">
+                                    <circle cx="31" cy="31" r="18" stroke="currentColor" stroke-width="5" />
+                                    <path d="M45 45l13 13" stroke="currentColor" stroke-width="5"
+                                        stroke-linecap="round" />
+                                    <path d="M18 35h22l5 8H13l5-8Z" fill="currentColor" opacity="0.16" />
+                                </svg>
+                            </div>
+                            <h3>Arama için hazır</h3>
+                            <p>Marka, model ve yıl seçtiğinde BABUL fiyat ve kaynak metriklerini burada açacak.</p>
+                            <div class="empty-hints">
+                                <span>Kaynak karşılaştırma hazır</span>
+                                <span>Fiyat metriği otomatik</span>
+                                <span>Sayfalama hazır</span>
+                            </div>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="loading-state" class="hidden">
+                            <div class="live-search-panel">
+                                <div class="live-search-head">
+                                    <div>
+                                        <p class="stats-eyebrow">Canlı tarama</p>
+                                        <h3 id="live-search-title">Kaynaklar hazırlanıyor</h3>
+                                    </div>
+                                    <div class="live-found-counter">
+                                        <strong id="live-found-count">0</strong>
+                                        <span>bulundu</span>
+                                    </div>
+                                </div>
+                                <div class="scan-progress">
+                                    <div id="scan-progress-bar"></div>
+                                </div>
+                                <div id="scan-events" class="scan-events"></div>
+                                <div class="source-scan-grid">
+                                    <div id="source-arabam-card" class="source-scan-card is-active">
+                                        <span class="source-dot"></span>
+                                        <div>
+                                            <strong>arabam.com</strong>
+                                            <p id="source-arabam-status">Bağlantı hazırlanıyor</p>
+                                        </div>
+                                    </div>
+                                    <div id="source-sahibinden-card" class="source-scan-card">
+                                        <span class="source-dot"></span>
+                                        <div>
+                                            <strong>sahibinden.com</strong>
+                                            <p id="source-sahibinden-status">Sırada bekliyor</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="error-state" class="hidden">
+                            <div class="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                                <div class="text-5xl mb-4">⚠️</div>
+                                <h3 class="text-lg font-bold text-red-700 mb-2" id="error-title">Hata Oluştu</h3>
+                                <p class="text-red-600" id="error-message"></p>
+                                <button onclick="searchListings()"
+                                    class="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition">Tekrar
+                                    Dene</button>
+                            </div>
+                        </div>
+
+                        <!-- Stats Bar -->
+                        <div id="stats-bar" class="hidden stats-bar mb-6">
+                            <div class="stats-bar-head">
+                                <div>
+                                    <p class="stats-eyebrow">Arama özeti</p>
+                                    <h3 id="search-query-badge"></h3>
+                                </div>
+                                <span id="result-count" class="result-count-pill"></span>
+                            </div>
+                            <div class="result-metrics">
+                                <div class="result-metric">
+                                    <span>Ortalama</span>
+                                    <strong id="avg-price">-</strong>
+                                </div>
+                                <div class="result-metric">
+                                    <span>En düşük</span>
+                                    <strong id="min-price">-</strong>
+                                </div>
+                                <div class="result-metric">
+                                    <span>En yüksek</span>
+                                    <strong id="max-price">-</strong>
+                                </div>
+                                <div class="result-metric">
+                                    <span>Kaynak</span>
+                                    <strong id="source-breakdown">-</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results List -->
+                        <div id="results-grid" class="hidden results-list"></div>
+                        <div id="pagination-bar" class="hidden pagination-bar">
+                            <button id="prev-page-btn" onclick="changeResultsPage(-1)">Önceki</button>
+                            <span id="pagination-info">Sayfa 1 / 1</span>
+                            <button id="next-page-btn" onclick="changeResultsPage(1)">Sonraki</button>
+                        </div>
+
+                        <!-- No Results -->
+                        <div id="no-results" class="hidden text-center py-16">
+                            <div class="text-6xl mb-4">😕</div>
+                            <h3 class="text-xl font-bold text-slate-500 mb-2">İlan Bulunamadı</h3>
+                            <p class="text-slate-400">Farklı kriterlerle tekrar aramayı deneyin</p>
+                        </div>
+                    </div>
+                </div>
+        </section>
+
+        <section id="kredi-view" class="app-view hidden">
+            <div class="dashboard-hero mb-6">
+                <div>
+                    <span class="eyebrow">Finansman hesabı</span>
+                    <h2>Kredi Hesaplama</h2>
+                    <p>Sıfır ve ikinci el araç için ortalama taşıt kredisi faiz oranlarını karşılaştır, aylık taksitini hesapla.</p>
+                </div>
+            </div>
+
+            <!-- Faiz oranları: Sıfır & İkinci El yan yana -->
+            <div class="kredi-rates-row mb-6">
+                <div class="kredi-rate-card">
+                    <span class="panel-label kredi-sifir-label">Sıfır Araç — Ortalama Faiz</span>
+                    <div class="market-list">
+                        <div class="market-row"><span>Aylık Faiz (Ort.)</span><strong class="rate-up">%3.99</strong></div>
+                        <div class="market-row"><span>Yıllık Faiz (Ort.)</span><strong>%47.88</strong></div>
+                        <div class="market-row"><span>Maks. Vade</span><strong>60 ay</strong></div>
+                    </div>
+                </div>
+                <div class="kredi-rate-card">
+                    <span class="panel-label kredi-ikinci-label">İkinci El Araç — Ortalama Faiz</span>
+                    <div class="market-list">
+                        <div class="market-row"><span>Aylık Faiz (Ort.)</span><strong class="rate-down">%4.49</strong></div>
+                        <div class="market-row"><span>Yıllık Faiz (Ort.)</span><strong>%53.88</strong></div>
+                        <div class="market-row"><span>Maks. Vade</span><strong>48 ay</strong></div>
+                    </div>
+                </div>
+            </div>
+            <p class="muted-line mb-6" style="text-align:center">* Piyasa ortalamasıdır; bankadan bankaya farklılık gösterebilir.</p>
+
+            <!-- Hesaplama formu -->
+            <div class="kredi-grid">
+                <div class="kredi-calc-card">
+                    <span class="panel-label">Araç Tipi</span>
+                    <div class="kredi-tabs" style="margin-top:12px">
+                        <button class="kredi-tab is-active" onclick="switchKrediTab('sifir', this)">Sıfır Araç</button>
+                        <button class="kredi-tab" onclick="switchKrediTab('ikinciEl', this)">İkinci El Araç</button>
+                    </div>
+                    <div class="kredi-form" style="margin-top:16px">
+                        <div>
+                            <label class="kredi-label">Araç Fiyatı (₺)</label>
+                            <input id="kredi-fiyat" class="custom-input" type="number" placeholder="1500000" oninput="calcKredi()">
+                        </div>
+                        <div>
+                            <label class="kredi-label">Peşinat (₺)</label>
+                            <input id="kredi-pesinat" class="custom-input" type="number" placeholder="300000" oninput="calcKredi()">
+                        </div>
+                        <div>
+                            <label class="kredi-label">Vade</label>
+                            <select id="kredi-vade" class="custom-select" onchange="calcKredi()">
+                                <option value="12">12 ay</option>
+                                <option value="24" selected>24 ay</option>
+                                <option value="36">36 ay</option>
+                                <option value="48">48 ay</option>
+                                <option value="60">60 ay (yalnızca sıfır araç)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="kredi-calc-card">
+                    <span class="panel-label">Hesaplama Sonucu</span>
+                    <div id="kredi-sonuc-empty" class="kredi-empty-hint">
+                        <p>Sol taraftan araç tipi ve tutarı girdikten sonra taksit otomatik hesaplanır.</p>
+                    </div>
+                    <div id="kredi-sonuc" class="kredi-sonuc hidden" style="margin-top:16px">
+                        <div class="kredi-metric">
+                            <span>Kullanılan Faiz</span>
+                            <strong id="kr-faiz-oran">-</strong>
+                        </div>
+                        <div class="kredi-metric">
+                            <span>Kredi Tutarı</span>
+                            <strong id="kr-tutar">-</strong>
+                        </div>
+                        <div class="kredi-metric kredi-metric-highlight">
+                            <span>Aylık Taksit</span>
+                            <strong id="kr-taksit" class="kredi-highlight">-</strong>
+                        </div>
+                        <div class="kredi-metric">
+                            <span>Toplam Ödeme</span>
+                            <strong id="kr-toplam">-</strong>
+                        </div>
+                        <div class="kredi-metric">
+                            <span>Toplam Faiz Maliyeti</span>
+                            <strong id="kr-faiz" class="kredi-faiz-val">-</strong>
+                        </div>
+                        <div class="kredi-metric">
+                            <span>Araç + Faiz Toplamı</span>
+                            <strong id="kr-genel-toplam">-</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="watchlist-view" class="app-view hidden">
+            <div class="watchlist-head">
+                <div>
+                    <span class="eyebrow">Takip listesi</span>
+                    <h2>İzlenen araçlar ve kriterler</h2>
+                    <p>Şimdilik tarayıcıda saklanır. DB/job fazında bu liste periyodik olarak otomatik güncellenecek.
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="showView('search')">Yeni Arama</button>
+            </div>
+            <div class="criteria-panel">
+                <h3>Kriter takibi ekle</h3>
+                <div class="criteria-grid">
+                    <input id="watch-brand" class="custom-input" placeholder="Marka">
+                    <input id="watch-model" class="custom-input" placeholder="Model">
+                    <input id="watch-year" class="custom-input" placeholder="Yıl">
+                    <input id="watch-km" class="custom-input" placeholder="Maks. km">
+                    <button class="btn-primary" onclick="addCriteriaFromForm()">Takibe Al</button>
+                </div>
+            </div>
+            <div id="watchlist-items" class="watchlist-grid"></div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-8 text-sm text-slate-400">
+        <p>BABUL &mdash; Ara, karşılaştır, bul</p>
+        <p class="mt-1">arabam.com &amp; sahibinden.com kaynakları taranır</p>
+        <p class="mt-3 text-xs text-slate-400 max-w-2xl mx-auto px-4">
+            <strong>Sorumluluk Reddi:</strong> Bu sitede sunulan fiyat, faiz oranı ve kur bilgileri yalnızca
+            bilgilendirme amaçlıdır; yatırım, kredi veya alım-satım tavsiyesi niteliği taşımaz. BABUL, üçüncü
+            kaynaklardan derlenen verilerin doğruluğunu ve güncelliğini garanti etmez.
+        </p>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

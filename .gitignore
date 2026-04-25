@@ -1,0 +1,61 @@
+.ant-colony/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Environment variables (hassas bilgiler)
+.env
+.env.local
+.env.production
+*.env
+
+# Veritabanı
+*.db
+*.sqlite
+*.sqlite3
+
+# Log dosyaları
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Docker override
+docker-compose.override.yml
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Scraper cache / geçici data
+backend/data/*.json
+backend/data/*.csv
+
+# Gereksiz klasör
+-p/
