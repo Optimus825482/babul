@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import re
 import xml.etree.ElementTree as ET
-
+import urllib3
 import requests
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 NEWS_FEEDS = [
@@ -24,6 +26,7 @@ def fetch_news(limit=12):
                 feed_url,
                 headers={"User-Agent": "BABUL/1.0 (+local-news-reader)"},
                 timeout=8,
+                verify=False,
             )
             response.raise_for_status()
             items.extend(_parse_rss(response.content, source_name))
