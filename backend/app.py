@@ -146,9 +146,9 @@ def register_routes(app):
     @app.route('/api/browser-status', methods=['GET'])
     def browser_status():
         """Playwright browser profil durumunu döner."""
-        from scraper.browser_session import is_playwright_available, is_profile_ready
+        from scraper.browser_session import is_scrapling_available, is_profile_ready
         return jsonify({
-            "playwright_available": is_playwright_available(),
+            "playwright_available": is_scrapling_available(),
             "sahibinden_profile_ready": is_profile_ready("sahibinden"),
             "setup_command": (
                 "docker exec -it <container> "
@@ -293,3 +293,4 @@ if __name__ == '__main__':
         port=5000,
         debug=True
     )
+
