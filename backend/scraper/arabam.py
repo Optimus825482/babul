@@ -1,4 +1,5 @@
 # Arabam.com Scraper - İkinci el araç ilanlarını çeker (Tüm ilanlar + Detaylar)
+import os
 import re
 import time
 from bs4 import BeautifulSoup
@@ -73,7 +74,46 @@ class ArabamScraper(BaseScraper):
         
         self.logger.info(f"Toplam {len(detailed_listings)} ilan detaylı olarak çekildi")
         return detailed_listings
-    
+
+    def search_stream(self, brand: str, model: str, year: str):
+        """Generator: her ilan detayı çekildiğinde hemen yield eder."""
+        from scraper.normalizer import normalize_listings
+
+        brand_q = brand.strip()
+        model_q = model.strip()
+
+        max_pages = int(os.getenv("SCRAPER_MAX_PAGES", "5"))
+        all_listings = []
+
+        for page_num in range(1, max_pages + 1):
+            url = (
+                f"{self.SEARCH_URL}?searchText={brand_q}+{model_q}"
+                f"&sort=price&yearMin={year}&yearMax={year}"
+            )
+            if page_num > 1:
+                url += f"&page={page_num}"
+
+            self.logger.info(f"Stream: sayfa {page_num} çekiliyor")
+            html = self.fetch(url)
+            if not html:
+                break
+
+            listings = self.parse(html)
+            if not listings:
+                break
+
+            all_listings.extend(listings)
+            self.logger.info(f"Stream: {len(listings)} ilan bulundu (toplam {len(all_listings)})")
+
+        for listing in all_listings:
+            if listing.get('detailUrl'):
+                detail = self.fetch_detail(listing['detailUrl'])
+                if detail:
+                    listing.update(detail)
+            normalized = normalize_listings([listing])
+            if normalized:
+                yield normalized[0]
+
     def parse(self, html, year_filter=None):
         """
         HTML sayfasını parse ederek ilanları çıkarır

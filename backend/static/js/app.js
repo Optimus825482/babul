@@ -241,7 +241,6 @@ async function searchListings() {
     const brand = document.getElementById('brand-select').value;
     const model = document.getElementById('model-select').value;
     const year = document.getElementById('year-select').value;
-    const filters = collectSearchFilters();
 
     if (!brand || !model || !year) {
         showToast('Lütfen tüm alanları doldurun', 'warning');
@@ -251,43 +250,110 @@ async function searchListings() {
     if (isSearching) return;
     isSearching = true;
 
-    showLoading(brand, model, year);
+    // Mevcut SSE bağlantısı varsa kapat
+    if (window._searchSSE) {
+        window._searchSSE.close();
+        window._searchSSE = null;
+    }
 
-    try {
-        const res = await fetch(API_BASE + '/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brand, model, year, ...filters })
-        });
-        const data = await res.json();
+    showLoading(brand, model, year);
+    currentResults = [];
+    currentQuery = { brand, model, year };
+    currentPage = 1;
+
+    let sseCount = 0;
+    const params = new URLSearchParams({ brand, model, year });
+    const sse = new EventSource(API_BASE + '/search/stream?' + params);
+    window._searchSSE = sse;
+
+    sse.onmessage = (e) => {
+        let data;
+        try { data = JSON.parse(e.data); } catch { return; }
 
         if (data.error) {
+            sse.close();
+            window._searchSSE = null;
+            isSearching = false;
+            stopLiveSearch([]);
             showError(data.error);
             return;
         }
 
-        stopLiveSearch(data.results || []);
-        renderResults(data.results || [], data.query || {});
-        updateSearchSidebar(data.results || []);
-
-        if (data.warnings && data.warnings.length > 0) {
-            showToast('Bazı kaynaklarda hata oluştu', 'warning');
+        if (data.done) {
+            sse.close();
+            window._searchSSE = null;
+            isSearching = false;
+            stopLiveSearch(currentResults);
+            if (sseCount === 0) {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('no-results').classList.remove('hidden');
+                showToast('İlan bulunamadı', 'warning');
+            } else {
+                showToast(sseCount + ' ilan bulundu!', 'success');
+                updateSearchSidebar(currentResults);
+                _updateStatsBar(currentResults, currentQuery);
+            }
+            return;
         }
 
-        const count = data.count || 0;
-        if (count > 0) {
-            showToast(count + ' ilan bulundu!', 'success');
-        } else {
-            showToast('İlan bulunamadı', 'warning');
+        // İlk sonuç gelince loading overlay'i gizle, grid'i göster
+        if (sseCount === 0) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('error-state').classList.add('hidden');
+            document.getElementById('no-results').classList.add('hidden');
+            document.getElementById('stats-bar').classList.remove('hidden');
+            document.getElementById('results-grid').classList.remove('hidden');
         }
 
-    } catch (err) {
-        console.error('Arama hatası:', err);
-        stopLiveSearch([]);
-        showError('Sunucuya bağlanılamadı. Lütfen backend\'in çalıştığından emin olun.');
-    } finally {
+        sseCount++;
+        currentResults.push(data);
+        appendResultCard(data, sseCount - 1);
+        setText('live-found-count', sseCount);
+        _updateStatsBar(currentResults, currentQuery);
+    };
+
+    sse.onerror = () => {
+        sse.close();
+        window._searchSSE = null;
         isSearching = false;
-    }
+        stopLiveSearch(currentResults);
+        if (sseCount === 0) {
+            showError('Sunucuya bağlanılamadı. Lütfen backend\'in çalıştığından emin olun.');
+        }
+    };
+}
+
+/**
+ * Tek bir ilan kartını grid'e ekler (SSE progressive rendering için).
+ * @param {Object} item - normalize edilmiş ilan nesnesi
+ * @param {number} index - animasyon sırası için index
+ */
+function appendResultCard(item, index) {
+    const grid = document.getElementById('results-grid');
+    if (!grid) return;
+    const card = createListingCard(item, index);
+    grid.appendChild(card);
+}
+
+/**
+ * Stats bar'ı mevcut sonuçlara göre günceller.
+ * @param {Array} results
+ * @param {Object} query
+ */
+function _updateStatsBar(results, query) {
+    if (!results || results.length === 0) return;
+    const priceStats = calculatePriceStats(results);
+    const sourceBreakdown = calculateSourceBreakdown(results);
+    const statsBar = document.getElementById('stats-bar');
+    if (statsBar) statsBar.classList.remove('hidden');
+    setText('result-count', results.length + ' ilan');
+    setText('avg-price', formatPrice(priceStats.avg));
+    setText('min-price', formatPrice(priceStats.min));
+    setText('max-price', formatPrice(priceStats.max));
+    setText('source-breakdown', sourceBreakdown);
+    setText('search-query-badge',
+        (query.brand || '') + ' ' + (query.model || '') + ' ' + (query.year || ''));
 }
 
 // ============================================================

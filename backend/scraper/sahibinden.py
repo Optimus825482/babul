@@ -108,7 +108,42 @@ class SahibindenScraper(BaseScraper):
         
         self.logger.info(f"sahibinden.com'dan toplam {len(detailed)} ilan bulundu")
         return detailed
-    
+
+    def search_stream(self, brand: str, model: str, year: str):
+        """Generator: her ilan detayı çekildiğinde hemen yield eder."""
+        from scraper.normalizer import normalize_listings
+
+        brand_slug = brand.lower().replace(' ', '-')
+        model_slug = model.lower().replace(' ', '-')
+
+        urls = [
+            f"{self.SEARCH_URL}/{brand_slug}-{model_slug}?a251_max={year}&a251_min={year}",
+            f"{self.SEARCH_URL}?query_text_mf={brand}+{model}&a251_max={year}&a251_min={year}",
+        ]
+
+        all_listings = []
+        for url in urls:
+            html = self._fetch_best(url)
+            if not html:
+                continue
+            if any(x in html.lower() for x in ['just a moment', 'ray id', 'cf-browser-verification', 'ddos-guard']):
+                return
+            if 'secure.sahibinden.com/login' in html or 'sahibinden.com/login' in html:
+                return
+            listings = self.parse(html, year)
+            if listings:
+                all_listings.extend(listings)
+                break
+
+        for listing in all_listings:
+            if listing.get('detailUrl'):
+                detail = self.fetch_detail(listing['detailUrl'])
+                if detail:
+                    listing.update(detail)
+            normalized = normalize_listings([listing])
+            if normalized:
+                yield normalized[0]
+
     def parse(self, html, year_filter=None):
         """
         HTML sayfasını parse ederek ilanları çıkarır

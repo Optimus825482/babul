@@ -143,6 +143,55 @@ def register_routes(app):
 
         return jsonify(response)
 
+    @app.route('/api/search/stream', methods=['GET'])
+    def search_stream_sse():
+        """Server-Sent Events ile arama sonuçlarını progressive olarak gönderir."""
+        import json
+        from flask import stream_with_context, Response as FlaskResponse
+
+        brand = request.args.get('brand', '').strip()
+        model = request.args.get('model', '').strip()
+        year = request.args.get('year', '').strip()
+
+        validation_error = validate_search_criteria({"brand": brand, "model": model, "year": year})
+        if validation_error:
+            def err_gen():
+                yield f'data: {json.dumps({"error": validation_error})}\n\n'
+                yield 'data: {"done": true}\n\n'
+            return FlaskResponse(stream_with_context(err_gen()), mimetype='text/event-stream')
+
+        def generate():
+            count = 0
+            # Arabam
+            try:
+                for result in arabam_scraper.search_stream(brand, model, year):
+                    count += 1
+                    payload = json.dumps(result, ensure_ascii=False)
+                    yield f'data: {payload}\n\n'
+            except Exception as exc:
+                logger.error(f"SSE arabam hatası: {exc}")
+
+            # Sahibinden
+            try:
+                for result in sahibinden_scraper.search_stream(brand, model, year):
+                    count += 1
+                    payload = json.dumps(result, ensure_ascii=False)
+                    yield f'data: {payload}\n\n'
+            except Exception as exc:
+                logger.error(f"SSE sahibinden hatası: {exc}")
+
+            yield f'data: {json.dumps({"done": True, "count": count})}\n\n'
+
+        return FlaskResponse(
+            stream_with_context(generate()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+                'Connection': 'keep-alive',
+            }
+        )
+
     @app.route('/api/browser-status', methods=['GET'])
     def browser_status():
         """Playwright browser profil durumunu döner."""
