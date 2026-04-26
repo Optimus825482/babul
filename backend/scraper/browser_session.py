@@ -111,3 +111,4 @@ class BrowserSession:
         except Exception as exc:
             self.log.error(f"fetch hatası ({url}): {exc}")
             return None
+

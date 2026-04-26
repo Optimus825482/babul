@@ -81,7 +81,7 @@ class SahibindenScraper(BaseScraper):
                     continue
                 
                 # Bot koruması kontrolü
-                if any(x in html.lower() for x in ['captcha', 'cloudflare', 'koruma', 'ray id', 'blocked']):
+                if any(x in html.lower() for x in ['just a moment', 'ray id', 'cf-browser-verification', 'ddos-guard']):
                     self.logger.warning("Bot koruması tespit edildi - sahibinden.com atlanıyor")
                     return []
                 
@@ -265,4 +265,5 @@ class SahibindenScraper(BaseScraper):
         except Exception as e:
             self.logger.warning(f"sahibinden.com detay hatası: {str(e)}")
             return {}
+
 
