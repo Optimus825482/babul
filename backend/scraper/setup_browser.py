@@ -10,7 +10,7 @@ Kullanım (VPS / Docker):
 
 import sys
 import logging
-from browser_session import BrowserSession, is_scrapling_available, PROFILE_BASE
+from scraper.browser_session import BrowserSession, is_scrapling_available, PROFILE_BASE
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s — %(message)s")
 log = logging.getLogger("setup_browser")
@@ -50,4 +50,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
