@@ -1,6 +1,5 @@
 """
-Browser profil kurulum scripti.
-Cloudflare cözer, sahibinden.com'a otomatik login yapar, profili kaydeder.
+Browser profil kurulum + sahibinden otomatik login.
 
 Kullanim:
   SAHIBINDEN_EMAIL=mail@example.com SAHIBINDEN_PASSWORD=sifren \
@@ -11,115 +10,167 @@ import os
 import sys
 import time
 import logging
-from scraper.browser_session import BrowserSession, is_scrapling_available, PROFILE_BASE
+from pathlib import Path
+from scraper.browser_session import is_scrapling_available, PROFILE_BASE
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s - %(message)s")
 log = logging.getLogger("setup_browser")
 
-SITE_URLS = {
-    "sahibinden": "https://www.sahibinden.com/otomobil",
-    "arabam": "https://www.arabam.com/ikinci-el/otomobil",
-}
-
-LOGIN_URL = "https://secure.sahibinden.com/login"
+LISTING_URL = "https://www.sahibinden.com/otomobil"
+LOGIN_URL   = "https://secure.sahibinden.com/login"
 
 
-def _sahibinden_login(session: BrowserSession) -> bool:
-    email = os.getenv("SAHIBINDEN_EMAIL", "")
+def _delete_locks(profile_dir: Path):
+    for lock in ["SingletonLock", "SingletonCookie", "SingletonSocket"]:
+        p = profile_dir / lock
+        if p.exists():
+            p.unlink(missing_ok=True)
+
+
+def setup_sahibinden(profile_dir: Path):
+    email    = os.getenv("SAHIBINDEN_EMAIL", "")
     password = os.getenv("SAHIBINDEN_PASSWORD", "")
 
     if not email or not password:
-        log.warning("SAHIBINDEN_EMAIL / SAHIBINDEN_PASSWORD tanimli degil. Login atlanıyor.")
-        return False
-
-    log.info(f"Login deneniyor: {email}")
+        log.error("SAHIBINDEN_EMAIL ve SAHIBINDEN_PASSWORD env var olarak tanimlanmali!")
+        sys.exit(1)
 
     try:
-        ctx = session._session
-        pages = getattr(ctx, "pages", [])
-        if not pages:
-            log.error("Acik sayfa yok")
-            return False
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        log.error("playwright yuklu degil")
+        sys.exit(1)
 
-        pg = pages[-1]
-        pg.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=20000)
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    _delete_locks(profile_dir)
+
+    log.info(f"Playwright headless baslatiliyor → {profile_dir}")
+
+    with sync_playwright() as p:
+        ctx = p.chromium.launch_persistent_context(
+            str(profile_dir),
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-blink-features=AutomationControlled",
+            ],
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            locale="tr-TR",
+            viewport={"width": 1366, "height": 768},
+        )
+
+        page = ctx.new_page()
+
+        # 1) Listing sayfasini ac — login redirect gelecek
+        log.info(f"Aciliyor: {LISTING_URL}")
+        page.goto(LISTING_URL, wait_until="domcontentloaded", timeout=30000)
         time.sleep(2)
 
-        # Email
-        for sel in ['input[name="username"]', 'input[type="email"]', '#user_email', '[placeholder*="posta"]']:
-            try:
-                pg.fill(sel, email, timeout=3000)
-                log.info(f"Email alani bulundu: {sel}")
-                break
-            except Exception:
-                continue
+        # 2) Login sayfasindaysak form doldur
+        if "login" in page.url:
+            log.info(f"Login sayfasi: {page.url}")
+            log.info(f"Email dolduruluyor: {email}")
 
-        time.sleep(0.3)
+            # Email alani
+            filled = False
+            for sel in [
+                'input[name="username"]',
+                'input[type="email"]',
+                '#user_email',
+                'input[placeholder*="posta"]',
+                'input[placeholder*="mail"]',
+            ]:
+                try:
+                    page.fill(sel, email, timeout=4000)
+                    filled = True
+                    log.info(f"Email alani: {sel}")
+                    break
+                except Exception:
+                    continue
 
-        # Sifre
-        for sel in ['input[name="password"]', 'input[type="password"]', '#user_password']:
-            try:
-                pg.fill(sel, password, timeout=3000)
-                log.info(f"Sifre alani bulundu: {sel}")
-                break
-            except Exception:
-                continue
+            if not filled:
+                log.error("Email alani bulunamadi. Sayfa kaynagini kontrol edin.")
+                # Sayfayi kaydet
+                with open("/tmp/login_page.html", "w") as f:
+                    f.write(page.content())
+                log.info("Sayfa /tmp/login_page.html dosyasina kaydedildi")
+                ctx.close()
+                return
 
-        time.sleep(0.3)
+            time.sleep(0.4)
 
-        # Submit
-        for sel in ['button[type="submit"]', 'input[type="submit"]', '[class*="login-btn"]', '[class*="giris"]']:
-            try:
-                pg.click(sel, timeout=3000)
-                log.info("Login formu gonderildi")
-                break
-            except Exception:
-                continue
+            # Sifre alani
+            for sel in [
+                'input[name="password"]',
+                'input[type="password"]',
+                '#user_password',
+            ]:
+                try:
+                    page.fill(sel, password, timeout=4000)
+                    log.info(f"Sifre alani: {sel}")
+                    break
+                except Exception:
+                    continue
 
-        time.sleep(4)
-        current_url = pg.url
-        if "login" not in current_url:
-            log.info(f"Login basarili! URL: {current_url}")
-            return True
+            time.sleep(0.4)
+
+            # Submit
+            submitted = False
+            for sel in [
+                'button[type="submit"]',
+                'input[type="submit"]',
+                'button:has-text("Giriş")',
+                'button:has-text("Giris")',
+            ]:
+                try:
+                    page.click(sel, timeout=4000)
+                    submitted = True
+                    log.info(f"Form gonderildi: {sel}")
+                    break
+                except Exception:
+                    continue
+
+            if not submitted:
+                page.keyboard.press("Enter")
+                log.info("Enter ile form gonderildi")
+
+            time.sleep(5)
+
+            if "login" not in page.url:
+                log.info(f"LOGIN BASARILI! URL: {page.url}")
+            else:
+                log.warning(f"Login basarisiz — URL: {page.url}")
+                log.warning("Email/sifre yanlis olabilir veya CAPTCHA gerekiyor.")
+
         else:
-            log.warning(f"Login basarisiz, hala login sayfasinda: {current_url}")
-            return False
+            log.info(f"Login gerekmedi, direkt acildi: {page.url}")
 
-    except Exception as exc:
-        log.error(f"Login hatasi: {exc}")
-        return False
+        # 3) Profili kaydet
+        ctx.close()
+
+    log.info("Profil kaydedildi. Artık her arama bu session ile gidecek.")
 
 
 def main():
     site_key = sys.argv[1] if len(sys.argv) > 1 else "sahibinden"
-    url = SITE_URLS.get(site_key, f"https://www.{site_key}.com")
+    profile_dir = PROFILE_BASE / site_key
 
-    if not is_scrapling_available():
-        log.error("scrapling yuklu degil!")
+    if not is_scrapling_available() and site_key == "sahibinden":
+        # scrapling olmasa bile playwright varsa devam et
+        pass
+
+    log.info(f"=== Setup: {site_key} ===")
+
+    if site_key == "sahibinden":
+        setup_sahibinden(profile_dir)
+    else:
+        log.error(f"Desteklenmeyen site: {site_key}")
         sys.exit(1)
-
-    log.info(f"=== Browser profil kurulumu: {site_key} ===")
-    log.info(f"Profil: {PROFILE_BASE / site_key}")
-
-    with BrowserSession(site_key, headless=True, solve_cloudflare=True) as session:
-        log.info(f"Sayfa aciliyor: {url}")
-        html = session.fetch(url)
-
-        if site_key == "sahibinden":
-            if html is None or "sahibinden.com/login" in (html or ""):
-                log.info("Login sayfasina yonlendirildi, otomatik login deneniyor...")
-                login_ok = _sahibinden_login(session)
-                if login_ok:
-                    html = session.fetch(url)
-                    if html:
-                        log.info(f"Ilan sayfasi alindi ({len(html)} byte)")
-                    else:
-                        log.warning("Login sonrasi ilan sayfasi alinamadi")
-            else:
-                if html:
-                    log.info(f"Sayfa alindi ({len(html)} byte)")
-
-    log.info("Profil kaydedildi.")
 
 
 if __name__ == "__main__":
