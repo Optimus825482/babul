@@ -4,7 +4,6 @@ import time
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 from .base import BaseScraper
-from .browser_session import BrowserSession, is_scrapling_available, is_profile_ready
 
 
 class ArabamScraper(BaseScraper):
@@ -14,31 +13,6 @@ class ArabamScraper(BaseScraper):
     BASE_URL   = "https://www.arabam.com"
     SEARCH_URL = "https://www.arabam.com/ikinci-el"
 
-    def _fetch_with_browser(self, url: str) -> str | None:
-        if not is_scrapling_available():
-            self.logger.warning("Playwright kurulu degil; arabam.com HTTP fallback kapali")
-            return None
-        if not is_profile_ready("arabam"):
-            self.logger.warning("Arabam browser profili hazir degil; setup_browser.py calistirilmali")
-            return None
-
-        def run_browser_fetch():
-            with BrowserSession("arabam", headless=True) as session:
-                return session.fetch(url)
-
-        try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                html = executor.submit(run_browser_fetch).result()
-            if html:
-                self.logger.info("Browser session ile sayfa alindi")
-            return html
-        except Exception as exc:
-            self.logger.warning(f"Browser session basarisiz: {exc}")
-            return None
-
-    def fetch(self, url: str, referer: str | None = None) -> str | None:
-        return self._fetch_with_browser(url)
-    
     def search(self, brand, model, year):
         """
         Arabam.com'da araç ilanı arar - TÜM SAYFALARI tarar
@@ -364,4 +338,6 @@ class ArabamScraper(BaseScraper):
         except Exception as e:
             self.logger.warning(f"Detay çekme hatası ({detail_url}): {str(e)}")
             return {}
+
+
 
