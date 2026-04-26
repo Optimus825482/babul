@@ -56,7 +56,7 @@ class BrowserSession:
         html = s.fetch("https://www.sahibinden.com/...")
     """
 
-    def __init__(self, site_key: str, headless: bool = True, solve_cloudflare: bool = True):
+    def __init__(self, site_key: str, headless: bool = True, solve_cloudflare: bool = False):
         self.site_key = site_key
         self.headless = headless
         self.solve_cloudflare = solve_cloudflare
@@ -111,4 +111,5 @@ class BrowserSession:
         except Exception as exc:
             self.log.error(f"fetch hatası ({url}): {exc}")
             return None
+
 
